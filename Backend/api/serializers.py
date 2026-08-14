@@ -1,7 +1,22 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model, authenticate
+from .models import Product
 
 User = get_user_model()
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'full_name', 'role', 'avatar_url', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

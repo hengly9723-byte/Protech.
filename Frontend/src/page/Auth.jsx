@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
-
-const API_URL = "http://127.0.0.1:8000/api";
+import { registerUser, loginUser } from "../services/api";
 
 const Auth = ({ onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -20,13 +18,14 @@ const Auth = ({ onLoginSuccess }) => {
     e.preventDefault();
     setMessage({ text: "", type: "" });
 
-    const endpoint = isSignUp ? `${API_URL}/register/` : `${API_URL}/login/`;
     const payload = isSignUp
       ? formData
       : { email: formData.email, password: formData.password };
 
     try {
-      const response = await axios.post(endpoint, payload);
+      const response = isSignUp
+        ? await registerUser(payload)
+        : await loginUser(payload);
       setMessage({
         text: response.data.message || "Success!",
         type: "success",
