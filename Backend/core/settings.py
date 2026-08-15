@@ -8,6 +8,7 @@ from pathlib import Path
 import os
 import dj_database_url
 from dotenv import load_dotenv
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,7 +62,7 @@ ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'BACKEND': 'django.template.backends.DjangoTemplates',
         'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -143,9 +144,8 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Protech <noreply@protech.c
 # CORS Configuration
 default_cors = [
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://protech-tau-sepia.vercel.app",
+    "https://protech-2bbvyp6s1-sokheng-s-projects.vercel.app",
 ]
 
 env_cors = os.getenv("CORS_ALLOWED_ORIGINS")
@@ -156,6 +156,11 @@ else:
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
+    r"^https://.*\.loca\.lt$",
+]
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'bypass-tunnel-reminder',  # Permits the localtunnel bypass header from Axios
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -176,4 +181,4 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
-}
+}
