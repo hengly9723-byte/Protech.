@@ -30,7 +30,7 @@ const App = () => {
       />
 
       <main className="w-full max-w-7xl mx-auto">
-        <Product />
+        {/* <Product /> */}
       </main>
 
       {/* Auth Modal Overlay */}

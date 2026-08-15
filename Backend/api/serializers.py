@@ -39,9 +39,20 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
+        from django.contrib.auth.backends import ModelBackend
+        try:
+            user_obj = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password.")
+
+        # Check if account is unverified before running full authenticate()
+        if not user_obj.is_active:
+            raise serializers.ValidationError(
+                "EMAIL_NOT_VERIFIED"
+            )
+
         user = authenticate(email=data['email'], password=data['password'])
         if not user:
             raise serializers.ValidationError("Invalid email or password.")
-        if not user.is_active:
-            raise serializers.ValidationError("Account is inactive.")
-        return {'user': user}
+
+        return {'user': user}

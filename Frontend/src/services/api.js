@@ -20,5 +20,7 @@ export const deleteProduct = (id) => api.delete(`/products/${id}/`);
 // Auth API Endpoints
 export const registerUser = (userData) => api.post("/register/", userData);
 export const loginUser = (credentials) => api.post("/login/", credentials);
+export const googleLogin = (token) => api.post("/auth/google/", { token });
 
 export default api;
+
