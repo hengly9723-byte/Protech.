@@ -142,25 +142,20 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Protech <noreply@protech.c
 
 
 # CORS Configuration
-default_cors = [
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://protech-tau-sepia.vercel.app",
     "https://protech-2s0ekwa6n-sokheng-s-projects.vercel.app",
 ]
 
-env_cors = os.getenv("CORS_ALLOWED_ORIGINS")
-if env_cors:
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in env_cors.split(",") if origin.strip()]
-else:
-    CORS_ALLOWED_ORIGINS = default_cors
-
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
     r"^https://.*\.loca\.lt$",
+    r"^https://.*\.ngrok-free\.app$",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'bypass-tunnel-reminder',  # Permits the localtunnel bypass header from Axios
+    'bypass-tunnel-reminder',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
