@@ -150,14 +150,17 @@ def google_login_view(request):
     Endpoint to receive and verify Google ID Token from the React frontend,
     create or fetch the user, and return JWT authentication tokens.
     """
-    # Lazy import to avoid startup errors with google namespace packages
+    import requests as http_requests
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
 
-    token = request.data.get('token') or request.data.get('id_token')
+    token = request.data.get('token') or request.data.get('id_token') or request.data.get('access_token')
     if not token:
-        return Response({"error": "Google ID token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Google token is required."}, status=status.HTTP_400_BAD_REQUEST)
 
+    id_info = None
+
+    # 1. First attempt: Verify as Google ID Token (JWT)
     try:
         id_info = id_token.verify_oauth2_token(
             token,
@@ -165,10 +168,23 @@ def google_login_view(request):
             settings.GOOGLE_CLIENT_ID,
             clock_skew_in_seconds=10  # Tolerate minor clock drift between server and Google
         )
-    except ValueError as e:
-        return Response({"error": f"Invalid Google token: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        return Response({"error": f"Token verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception:
+        # 2. Second attempt: Verify as Google OAuth2 Access Token
+        try:
+            userinfo_res = http_requests.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                headers={'Authorization': f'Bearer {token}'},
+                timeout=10
+            )
+            if userinfo_res.status_code == 200:
+                id_info = userinfo_res.json()
+            else:
+                return Response({"error": "Invalid Google token or expired session."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Token verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not id_info:
+        return Response({"error": "Failed to retrieve user profile from Google."}, status=status.HTTP_400_BAD_REQUEST)
 
     email = id_info.get('email')
     if not email:
