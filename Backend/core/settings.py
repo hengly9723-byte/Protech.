@@ -128,7 +128,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
-
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Email Configuration
 # Set EMAIL_BACKEND in .env to switch between console (dev) and SMTP (prod)
@@ -152,6 +152,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
     r"^https://.*\.loca\.lt$",
     r"^https://.*\.ngrok-free\.app$",
+    r"^https://.*\.ngrok-free\.dev$",
 ]
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
