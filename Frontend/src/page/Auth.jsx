@@ -133,11 +133,10 @@ const Auth = ({ onLoginSuccess }) => {
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
-            useOneTap
             theme="filled_blue"
             shape="pill"
+            size="large"
             text={isSignUp ? "signup_with" : "signin_with"}
-            width="100%"
           />
           <div className="w-full flex items-center my-4">
             <div className="flex-grow border-t border-gray-200"></div>
