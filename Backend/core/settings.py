@@ -20,13 +20,20 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-j@%g_#f_!=@e#9&vm0z-j(b_a9*m_8&7yzegz&mz0brkxx3qy$')
 
-DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 # Google OAuth Credentials
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '968981357423-os92276mmfmdfv1diteradinnvogd2q5.apps.googleusercontent.com')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+
+# Frontend URL — used to build verification links in emails.
+# Set FRONTEND_URL in .env for each environment.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
+
+# How long (seconds) an email verification token stays valid. Default = 24 hours.
+VERIFICATION_TOKEN_EXPIRY_SECONDS = int(os.getenv('VERIFICATION_TOKEN_EXPIRY_SECONDS', 86400))
 
 
 # Application definition
@@ -131,14 +138,25 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Email Configuration
-# Set EMAIL_BACKEND in .env to switch between console (dev) and SMTP (prod)
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+# Development (DEBUG=True) defaults to the console backend, which prints emails
+# to the terminal instead of sending them. Production (DEBUG=False) defaults to
+# the real SMTP backend. Set EMAIL_BACKEND explicitly to force a specific backend.
+if os.getenv('EMAIL_BACKEND'):
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND')
+elif DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1')
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() in ('true', '1')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Protech <noreply@protech.com>')
+# Gmail/other SMTP providers reject emails whose From address is not the
+# authenticated account, so default the From address to the SMTP login.
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'Protech <noreply@protech.com>')
 
 
 # CORS Configuration

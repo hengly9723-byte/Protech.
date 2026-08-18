@@ -22,7 +22,12 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#e2eff1] to-[#eff0da] p-4 sm:p-6 flex flex-col gap-6 relative">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#cfe8f2] via-[#e6f1f3] to-[#f0f1da] p-4 sm:p-6 flex flex-col gap-6">
+      {/* Branded background accents */}
+      <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 w-[34rem] h-[34rem] rounded-full bg-gradient-to-br from-[#4f7cff]/30 to-[#8ec5ff]/10 blur-3xl -z-10" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-40 -left-40 w-[32rem] h-[32rem] rounded-full bg-[#ffd166]/30 blur-3xl -z-10" />
+      <div aria-hidden className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 w-[24rem] h-[24rem] rounded-full bg-[#a8e6ff]/25 blur-3xl -z-10" />
+
       <Navbar 
         user={user} 
         onOpenAuth={() => setShowAuthModal(true)} 
@@ -35,7 +40,7 @@ const App = () => {
 
       {/* Auth Modal Overlay */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/25 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="relative w-full max-w-md">
             {/* Close Button */}
             <button

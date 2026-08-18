@@ -4,7 +4,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core import signing
 from rest_framework_simplejwt.tokens import RefreshToken
+
+import logging
+from django.core.mail import send_mail
+from django.utils import timezone
 
 from .models import Product
 from .serializers import (
@@ -16,6 +21,8 @@ from .serializers import (
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
+
 
 class ProductViewSet(viewsets.ModelViewSet):
     """
@@ -26,118 +33,114 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    API endpoint for managing Users.
+    API endpoint for listing/retrieving Users (read-only — accounts can only
+    be created through the Google OAuth flow).
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
 
 
-import random
-from django.core.mail import send_mail
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+VERIFY_SALT = 'protech-email-verify'
+
+
+def _make_verify_token(user_id: str) -> str:
+    """Return a URL-safe signed token encoding the user's UUID."""
+    return signing.dumps(user_id, salt=VERIFY_SALT)
+
+
+def _send_verification_email(user) -> None:
+    """
+    Generate a fresh signed token, store it, and send the verification email.
+    Raises nothing — errors are logged and swallowed so registration never fails
+    just because email is misconfigured.
+    """
+    token = _make_verify_token(str(user.id))
+    user.email_verification_token = token
+    user.save(update_fields=['email_verification_token', 'updated_at'])
+
+    verify_url = f"{settings.FRONTEND_URL}/verify-email?token={token}"
+    subject = "Verify your Protech account"
+    message = (
+        f"Hello {user.full_name or 'there'},\n\n"
+        "Thanks for signing up for Protech!\n\n"
+        f"Please verify your email address by clicking the link below:\n"
+        f"{verify_url}\n\n"
+        "This link expires in 24 hours. If you did not create this account, "
+        "you can safely ignore this email.\n\n"
+        "\u2014 The Protech Team"
+    )
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        logger.error(
+            "Failed to send verification email to %s: %s",
+            user.email, exc, exc_info=True,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Auth Views
+# ---------------------------------------------------------------------------
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_view(request):
-    serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.save()
-        
-        # Set user as inactive until email verification
-        user.is_active = False
-        user.is_email_verified = False
-        
-        # Generate 6-digit OTP code
-        otp_code = f"{random.randint(100000, 999999)}"
-        user.email_verification_token = otp_code
-        user.save()
-
-        # Send verification email
-        subject = "Verify your email - Protech"
-        message = f"Hello {user.full_name or 'User'},\n\nYour 6-digit verification code is: {otp_code}\n\nPlease enter this code to activate your account."
-        try:
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            print(f"Failed to send email: {e}")
-
-        return Response({
-            "message": "Registration successful! Please check your email for your 6-digit verification code.",
-            "email": user.email,
-            "requires_verification": True
-        }, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Email/password sign-up has been removed — Google OAuth is the only
+    # authentication method. This endpoint is intentionally disabled.
+    return Response(
+        {"error": "Email/password sign-up is disabled. Please sign in with Google.",
+         "code": "AUTH_METHOD_DISABLED"},
+        status=status.HTTP_410_GONE
+    )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_email_view(request):
-    email = request.data.get('email')
-    code = request.data.get('code')
+    # Email verification is no longer applicable — Google OAuth verifies email
+    # automatically. This endpoint is intentionally disabled.
+    return Response(
+        {"error": "Email verification is disabled. Please sign in with Google.",
+         "code": "AUTH_METHOD_DISABLED"},
+        status=status.HTTP_410_GONE
+    )
 
-    if not email or not code:
-        return Response({"error": "Email and verification code are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
-        return Response({"error": "Invalid email address."}, status=status.HTTP_404_NOT_FOUND)
-
-    if user.is_active and user.is_email_verified:
-        return Response({"message": "Account is already verified! You can sign in."}, status=status.HTTP_200_OK)
-
-    if user.email_verification_token == str(code).strip():
-        user.is_active = True
-        user.is_email_verified = True
-        user.email_verification_token = None
-        user.save()
-
-        refresh = RefreshToken.for_user(user)
-
-        return Response({
-            "message": "Email verified successfully! Your account is now active.",
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
-                "role": user.role
-            }
-        }, status=status.HTTP_200_OK)
-    else:
-        return Response({"error": "Invalid verification code. Please check your email and try again."}, status=status.HTTP_400_BAD_REQUEST)
-
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resend_verification_view(request):
+    # Email verification is no longer applicable — Google OAuth verifies email
+    # automatically. This endpoint is intentionally disabled.
+    return Response(
+        {"error": "Email verification is disabled. Please sign in with Google.",
+         "code": "AUTH_METHOD_DISABLED"},
+        status=status.HTTP_410_GONE
+    )
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    serializer = LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user = serializer.validated_data['user']
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            "message": "Login successful!",
-            "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh),
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "full_name": user.full_name,
-                "avatar_url": user.avatar_url,
-                "role": user.role
-            }
-        }, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # Email/password sign-in has been removed — Google OAuth is the only
+    # authentication method. This endpoint is intentionally disabled.
+    return Response(
+        {"error": "Email/password sign-in is disabled. Please sign in with Google.",
+         "code": "AUTH_METHOD_DISABLED"},
+        status=status.HTTP_410_GONE
+    )
 
 
 @api_view(['POST'])
@@ -170,6 +173,8 @@ def google_login_view(request):
     email = id_info.get('email')
     if not email:
         return Response({"error": "Email not provided by Google token."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    email = email.lower()
 
     full_name = id_info.get('name', '')
     avatar_url = id_info.get('picture', '')

@@ -1,58 +1,11 @@
 import React, { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { registerUser, loginUser, googleLogin } from "../services/api";
+import { googleLogin } from "../services/api";
+import logo from "../assets/cpu-logo-black-bold2.png";
 
 const Auth = ({ onLoginSuccess }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [formData, setFormData] = useState({
-    full_name: "",
-    email: "",
-    password: "",
-  });
   const [message, setMessage] = useState({ text: "", type: "" });
   const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage({ text: "", type: "" });
-    setLoading(true);
-
-    const payload = isSignUp
-      ? formData
-      : { email: formData.email, password: formData.password };
-
-    try {
-      const response = isSignUp
-        ? await registerUser(payload)
-        : await loginUser(payload);
-      setMessage({
-        text: response.data.message || "Success!",
-        type: "success",
-      });
-
-      if (response.data.access_token) {
-        localStorage.setItem("access_token", response.data.access_token);
-        localStorage.setItem("refresh_token", response.data.refresh_token);
-      }
-
-      if (response.data.user && onLoginSuccess) {
-        onLoginSuccess(response.data.user);
-      }
-    } catch (error) {
-      const errorMsg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        JSON.stringify(error.response?.data) ||
-        "An error occurred.";
-      setMessage({ text: errorMsg, type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setMessage({ text: "", type: "" });
@@ -93,32 +46,12 @@ const Auth = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] px-4">
-      <div className="w-full max-w-md p-8 rounded-2xl bg-white backdrop-blur-md border border-white/60 shadow-xl">
-        {/* Toggle Header */}
-        <div className="flex justify-center mb-6 border-b pb-3">
-          <button
-            className={`text-lg font-semibold px-4 py-1 cursor-pointer ${
-              !isSignUp ? "border-b-2 border-black text-black" : "text-gray-500"
-            }`}
-            onClick={() => setIsSignUp(false)}
-          >
-            Sign In
-          </button>
-          <button
-            className={`text-lg font-semibold px-4 py-1 cursor-pointer ${
-              isSignUp ? "border-b-2 border-black text-black" : "text-gray-500"
-            }`}
-            onClick={() => setIsSignUp(true)}
-          >
-            Sign Up
-          </button>
-        </div>
-
+    <div className="flex items-center justify-center min-h-[80vh] px-4 py-8">
+      <div className="w-full max-w-md p-10 sm:p-12 rounded-3xl bg-white/90 backdrop-blur-xl border border-white/60 shadow-2xl shadow-blue-900/10">
         {/* Feedback Message */}
         {message.text && (
           <div
-            className={`p-3 mb-4 rounded-lg text-sm ${
+            className={`p-3 mb-6 rounded-lg text-sm ${
               message.type === "success"
                 ? "bg-green-100 text-green-700 border border-green-200"
                 : "bg-red-100 text-red-700 border border-red-200"
@@ -128,73 +61,33 @@ const Auth = ({ onLoginSuccess }) => {
           </div>
         )}
 
-        {/* Google Sign-In Section */}
-        <div className="mb-6 flex flex-col items-center justify-center">
+        {/* Logo + Wordmark */}
+        <div className="flex flex-col items-center mb-8">
+          <img className="w-16 md:w-20" src={logo} alt="Protech logo" />
+          <h1 className="font-orbitron text-3xl md:text-4xl font-bold tracking-wide mt-3">
+            Protech.
+          </h1>
+
+          <h2 className="text-center text-xl font-semibold text-gray-800 mt-8">
+            Welcome to Protech
+          </h2>
+          <p className="text-center text-gray-500 mt-2">
+            Sign in with Google to continue.
+          </p>
+        </div>
+
+        {/* Google Sign-In — the only authentication method */}
+        <div className="flex flex-col items-center justify-center">
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={handleGoogleError}
             theme="filled_blue"
             shape="pill"
             size="large"
-            text={isSignUp ? "signup_with" : "signin_with"}
-          />
-          <div className="w-full flex items-center my-4">
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="px-3 text-xs text-gray-400 font-medium uppercase">Or with email</span>
-            <div className="flex-grow border-t border-gray-200"></div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignUp && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
-              <input
-                type="text"
-                name="full_name"
-                value={formData.full_name}
-                onChange={handleChange}
-                required={isSignUp}
-                className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="John Doe"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-300 focus:outline-none"
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full mt-1 p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-gray-300 focus:outline-none"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
+            text="signin_with"
             disabled={loading}
-            className="w-full py-3 mt-2 rounded-xl bg-black text-white font-medium hover:bg-gray-900 transition disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? "Processing..." : isSignUp ? "Create Account" : "Sign In"}
-          </button>
-        </form>
+          />
+        </div>
       </div>
     </div>
   );

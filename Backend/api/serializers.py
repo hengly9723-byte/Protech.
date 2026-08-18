@@ -39,20 +39,37 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        from django.contrib.auth.backends import ModelBackend
+        email = data.get('email', '').lower()
+        password = data.get('password', '')
+
         try:
-            user_obj = User.objects.get(email=data['email'])
+            user_obj = User.objects.get(email=email)
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email or password.")
 
-        # Check if account is unverified before running full authenticate()
-        if not user_obj.is_active:
+        # Account exists but was created via Google OAuth — it has no password.
+        # Direct the user to either use Google Sign-In or go to Sign Up to add a password.
+        if not user_obj.has_usable_password():
             raise serializers.ValidationError(
-                "EMAIL_NOT_VERIFIED"
+                "This account was created with Google Sign-In and has no password. "
+                "Please use the 'Sign in with Google' button, or go to Sign Up to add a password."
             )
 
-        user = authenticate(email=data['email'], password=data['password'])
+        # Account exists but email is not yet verified
+        if not user_obj.is_email_verified:
+            raise serializers.ValidationError(
+                "Please verify your email before logging in. "
+                "Check your inbox for the verification link, or use 'Resend verification email'."
+            )
+
+        # Account disabled (e.g., by an admin)
+        if not user_obj.is_active:
+            raise serializers.ValidationError(
+                "This account has been deactivated. Please contact support."
+            )
+
+        user = authenticate(request=self.context.get('request'), username=email, password=password)
         if not user:
             raise serializers.ValidationError("Invalid email or password.")
 
-        return {'user': user}
+        return {'user': user}
